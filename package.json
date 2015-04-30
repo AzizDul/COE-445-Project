@@ -1,0 +1,19 @@
+{
+  "name": "bb",
+  "version": "1.0.0",
+  "description": "installing stuff",
+  "main": "ex.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+
+  "dependencies": {
+    "twitter": "~1.2.5",
+    "express": "~4.9.8"
+  }
+}
+
+
