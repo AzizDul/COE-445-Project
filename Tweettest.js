@@ -21,10 +21,10 @@ classifier.learn('awful', 'negative');
 
 
 var client = new Twitter({
-  consumer_key: 'Is89BrPuvd6Cyq3vGecH9tW9I',
-  consumer_secret: 'hvyDUP5IwTgGV0pyJEkr44VySh75YlmvDyGDyqeaqcFyimD5bI',
-  access_token_key: '189987329-jcy45yA977pWc7ZoHQAnLXQXGXibAZweuvBmrrY3',
-  access_token_secret: 'DpCZROb8NlxurzMR2iOGwuYPUa2WbArE55m39VdCad5ba'
+  consumer_key: '',
+  consumer_secret: '',
+  access_token_key: '',
+  access_token_secret: ''
 });
 
 
