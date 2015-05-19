@@ -30,7 +30,7 @@ var client = new Twitter({
 
 //var util = require('util');
 
-client.stream('statuses/filter', {track: 'batman'}, function(stream){
+client.stream('statuses/filter', {track: 'batman begins'}, function(stream){
 
   stream.on('data', function(data){
     console.log(data.text);
@@ -42,9 +42,9 @@ client.stream('statuses/filter', {track: 'batman'}, function(stream){
 
 });
 
-client.get('search/tweets', {q: 'love'}, function(error, tweets, response){
-   console.log(tweets);
-});
+//client.get('search/tweets', {q: 'love'}, function(error, tweets, response){
+//   console.log(tweets);
+//});
 //how to use bayes and train it?
 //by taking a tweet then asking after every tweet (manually)
 //when asking, the answer should + or -, then after that the bayer code should learn
