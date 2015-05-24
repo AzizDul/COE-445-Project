@@ -6,6 +6,14 @@ var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 app.use(bodyParser());
+
+///----------------------------------
+app.set('port', (process.env.PORT || 5000));
+app.use(express.static(__dirname + '/public'));
+
+///----------------------------------
+
+
 //------------------------------------
 var array = []; /// temp array to store the tweets
 //------------------------------------
@@ -129,8 +137,8 @@ app.post('/submit', function(req, res){
 
 //-----------------------------------------------------
 
-app.listen(3000, function(){
-    console.log('Server listening at port 3000!');
+app.listen(app.get('port'), function(){
+    console.log('Server listening at port '+ app.get('port'));
 });
 
 
