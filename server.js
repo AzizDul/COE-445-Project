@@ -123,7 +123,7 @@ app.post('/movie', function(req, res){
             if(body.Response=='True') {
                 console.log(body) // Print the json response
 
-                rating(req.params.movie_name, function(returnValue) {
+                rating(req.body.user.search_text, function(returnValue) {
                     res.render('single', {title: body.Title,
                         date:body.Released
                         ,RMM_RATING:returnValue[0].rating
