@@ -36,7 +36,7 @@ exports.getTrainingSet = function(reg,res) {
     training.find().toArray(function (err2, docs) {
 
         if (err2) throw err2;
-        console.log(docs);
+        //console.log(docs);
         res(docs);
     })
 

@@ -1,9 +1,11 @@
 /**
  * Created by Adnan on 5/20/2015.
  */
-
+// essitneal modules
 var express = require('express');
-var app = express();
+var app = require('express')(),
+    swig = require('swig'),
+    people;
 var bodyParser = require('body-parser');
 app.use(bodyParser());
 
@@ -11,18 +13,13 @@ app.use(bodyParser());
 app.set('port', (process.env.PORT || 5000));
 app.use(express.static(__dirname + '/public'));
 
-///----------------------------------
-
-
-//------------------------------------
-var array = []; /// temp array to store the tweets
-//------------------------------------
+///---------------------------------- Twitter module
 var Twit = require('twit');
-//-----------------------------------------
+//----------------------------------------- Bayes stuff
 var bayes = require('./bayes');
 
 var classifier = bayes();
-//-----------------------------------------
+//----------------------------------------- keys
 var T = new Twit({
     consumer_key:         'bwy2OwQPRJDcu95gJAsRY9l5S'
     , consumer_secret:      'XX2jb3jX97dSGPCRyZi8TVDKxLsShnbmrBbG3LqNmOaNcSet1Y'
@@ -30,17 +27,136 @@ var T = new Twit({
     , access_token_secret:  'LF5OxrMlmI5mtRdEcqP3MPSWbRBvD6vIgyNpY3Mp8t2uJ'
 });
 
-//------------------------------------
+//------------------------------------ data base
 var database = require('./mongolab');
+//------------------------------------ Template modules
+var request = require("request")
+var path = require('path');
+
+app.engine('html', swig.renderFile);
+app.set('view engine', 'html');
+app.set('views', __dirname + '/');
+app.use("/css", express.static(path.join(__dirname, '/css')));
+app.use("/images", express.static(path.join(__dirname, '/images')));
+
+app.set('view cache', false);
+swig.setDefaults({ cache: false });
 //------------------------------------
+var array = []; /// temp array to store the tweets
 app.use(bodyParser.urlencoded({extended: true}));
+
+
+
+
+
+
 
 // Routes
 // Handlers for the REST APIs
 
 app.get('/', function(req, res) {
-    res.send("Index :)");
+    res.sendfile("index.html");
+  //  res.render('single', {title: 'TEST!!!!',src:__dirname + '/' });
 });
+
+app.get('/404', function(req, res) {
+    res.sendfile("404.html");
+    //  res.render('single', {title: 'TEST!!!!',src:__dirname + '/' });
+});
+
+app.get('/contact', function(req, res) {
+    res.sendfile("contact.html");
+    //  res.render('single', {title: 'TEST!!!!',src:__dirname + '/' });
+});
+
+
+////////////////////////////////////////////////////////////////////////////////
+app.get('/movie/:movie_name', function(req, res){
+
+    var url = "http://www.omdbapi.com/?t="+req.params.movie_name+"&y=&plot=short&r=json";
+
+    request({
+        url: url,
+        json: true
+    }, function (error, response, body) {
+
+        if (!error && response.statusCode === 200) {
+
+            if(body.Response=='True') {
+                console.log(body) // Print the json response
+
+                rating(req.params.movie_name, function(returnValue) {
+                    res.render('single', {title: body.Title,
+                        date:body.Released
+                        ,RMM_RATING:returnValue[0].rating
+                        ,imdb_RATING:body.imdbRating
+                        ,cast:body.Actors
+                        ,DIRECTION:body.Director
+                        ,genre: body.Genre
+                        ,runtime:body.Runtime
+                        ,awards:body.Awards
+                        ,plot:body.Plot
+                        ,src:__dirname + '/' });
+                    console.log(returnValue);
+                });
+
+
+
+            } else
+
+                res.sendfile("not_found.html");
+        }
+    })
+});
+
+app.post('/movie', function(req, res){
+
+    var url = "http://www.omdbapi.com/?t="+req.body.user.search_text+"&y=&plot=short&r=json";
+
+    request({
+        url: url,
+        json: true
+    }, function (error, response, body) {
+
+        if (!error && response.statusCode === 200) {
+
+            if(body.Response=='True') {
+                console.log(body) // Print the json response
+
+                rating(req.params.movie_name, function(returnValue) {
+                    res.render('single', {title: body.Title,
+                        date:body.Released
+                        ,RMM_RATING:returnValue[0].rating
+                        ,imdb_RATING:body.imdbRating
+                        ,cast:body.Actors
+                        ,DIRECTION:body.Director
+                        ,genre: body.Genre
+                        ,runtime:body.Runtime
+                        ,awards:body.Awards
+                        ,plot:body.Plot
+                        ,src:__dirname + '/' });
+                    console.log(returnValue);
+                });
+
+
+
+            } else
+
+                res.sendfile("not_found.html");
+        }
+    })
+
+
+
+});
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 app.get('/commit', function(req, res){
@@ -59,25 +175,67 @@ app.get('/commit', function(req, res){
 });
 
 
+
 app.get('/rate/:movie_name', function(req, res){
+
+    var tweets = [];
+    var tweetsCount = 0;
+    var pos=0;
+    var neg=0;
 
     res.setHeader('content-type', 'text/html');
 
-    FetechTweets(req.params.movie_name, function(returnValue) {
+    FetechTweets("just watched "+req.params.movie_name, function(returnValue) {
 
-        res.write('Tweets for: '+req.params.movie_name+' with classifications'+"<BR><BR><BR>");
+        res.write('<B>using keyword (just watched)</B> '+req.params.movie_name+' with classifications'+"<BR><BR><BR>");
 
         for(var id in returnValue){
+            try{
+            if (tweets.indexOf(returnValue[id].text) > -1) {
+                res.write("<BR>"+returnValue[id].text +" CLASS: "+ "repeated"+ "<BR><BR>");
 
+            } else {
+
+            if(classifier.categorize(returnValue[id].text)=="positive") pos++
+            if(classifier.categorize(returnValue[id].text)=="negative") neg++;
             res.write("<BR>"+returnValue[id].text +" CLASS: "+ classifier.categorize(returnValue[id].text)+ "<BR><BR>");
+                tweetsCount++;
+                tweets[tweetsCount] = returnValue[id].text;
+            }
+        }catch(err) {   console.log( err.message);
+            }}
 
-        }
-        res.end();
+        FetechTweets("watched "+req.params.movie_name, function(returnValue) {
+
+            res.write('<B>using keyword (watched)</B> '+req.params.movie_name+' with classifications'+"<BR><BR><BR>");
+
+            for(id = 0; id < 10; id++){
+                try {
+                if (tweets.indexOf(returnValue[id].text) > -1) {
+                    res.write("<BR>" + returnValue[id].text + " CLASS: " + "repeated" + "<BR><BR>");
+                }else {
+                if(classifier.categorize(returnValue[id].text)=="positive") pos++
+                if(classifier.categorize(returnValue[id].text)=="negative") neg++;
+                res.write("<BR>"+returnValue[id].text +" CLASS: "+ classifier.categorize(returnValue[id].text)+ "<BR><BR>");
+                tweetsCount++;
+                tweets[tweetsCount] = returnValue[id].text;
+                }
+            }catch(err) {   console.log( err.message);
+                }
+            }
+
+            res.end("Positive count: " + pos + " negative count: "+neg + " Rating:" +(pos/(pos+neg)*10));
+        });
+
+
+
     });
+
+
+
+
+
 });
-
-
-
 
 
 app.get('/training/:author', function(req, res){
@@ -89,10 +247,10 @@ app.get('/training/:author', function(req, res){
             array[id] = returnValue[id].text;
             res.write("<BR>"+returnValue[id].text + "<BR><BR>");
             res.write("<select name=\"user[tweet"+id+"]\">");
+            res.write("  <option value=\"delete\">Ignore [Do not add to Database]<\/option>");
             res.write("  <option value=\"positive\">Positive +++<\/option>");
             res.write("  <option value=\"negative\">Negative ---<\/option>");
             res.write("  <option value=\"ignore\">Ignore [Add to DataBase]<\/option>");
-            res.write("  <option value=\"delete\">Ignore [Do not add to Database]<\/option>");
             res.write("<\/select><BR>---------");
         }
 
@@ -108,8 +266,9 @@ app.get('/training/:author', function(req, res){
     // });
 });
 
-app.post('/submit', function(req, res){
 
+
+app.post('/submit', function(req, res){
 
     res.setHeader('content-type', 'text/html');
     i = 0;
@@ -133,7 +292,6 @@ app.post('/submit', function(req, res){
     res.end();
 
 });
-
 
 //-----------------------------------------------------
 
@@ -162,18 +320,76 @@ app.listen(app.get('port'), function(){
 function FetechTweets(query, callback)
 {
 
-    T.get('search/tweets', { q: "just watched "+query+" since:2011-11-11", count: 20 }, function(err, data, response) {
+    T.get('search/tweets', { q: query+" since:2011-11-11", count: 50 }, function(err, data, response) {
         //  console.log(data) /////////////// print the json object
         //console.log(query);
         //  console.log(data.statuses[0].text); /////// get the text of the first element in the json object
         //  console.log(data);
+        try{
+      if(data.statuses!=null)
         callback(data.statuses);
+        }catch(err) {}
         //connect to DB
 
     });
 
-
-
-
-
 }
+
+
+
+function rating(query,callback) {
+    var tweets = [];
+    var tweetsCount = 0;
+    var pos=0;
+    var neg=0;
+
+    FetechTweets("just watched "+query, function(returnValue) {
+
+
+
+        for(var id in returnValue){
+            try{
+                if (tweets.indexOf(returnValue[id].text) > -1) {
+
+                } else {
+                    if(classifier.categorize(returnValue[id].text)=="positive") pos++;
+                    if(classifier.categorize(returnValue[id].text)=="negative") neg++;
+                    tweetsCount++;
+                    tweets[tweetsCount] = returnValue[id].text;
+                }
+            }catch(err) {   console.log( err.message);
+            }}
+
+        FetechTweets("watched "+query, function(returnValue) {
+
+            for(id = 0; id < 10; id++){
+                try {
+                    if (tweets.indexOf(returnValue[id].text) > -1) {
+                    }else {
+                        if(classifier.categorize(returnValue[id].text)=="positive") pos++
+                        if(classifier.categorize(returnValue[id].text)=="negative") neg++;
+                        tweetsCount++;
+                        tweets[tweetsCount] = returnValue[id].text;
+                    }
+                }catch(err) {   console.log( err.message);
+                }
+            }
+
+            var returnData = [
+                {
+                    rating: (pos / (pos + neg) * 10),
+                    //  tweets: tweets,
+                    tweetsCount:tweetsCount
+                }
+            ];
+            console.log(returnData);
+            callback(returnData);
+        });
+
+            // res.end("Positive count: " + pos + " negative count: "+neg + " Rating:" +(pos/(pos+neg)*10));
+
+
+});
+}
+
+
