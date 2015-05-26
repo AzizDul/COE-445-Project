@@ -117,7 +117,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 						</div>
 							<div class="story-review">
 								<h4>Sample tweets: </h4>
-								<p>{{sample_tweets}}</p>
+								{% autoescape false %}{{sample_tweets}}{% endautoescape %}
 							</div>
 							<!-- comments-section-starts -->
 	    <div class="comments-section">

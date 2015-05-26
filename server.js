@@ -41,6 +41,7 @@ app.use("/images", express.static(path.join(__dirname, '/images')));
 
 app.set('view cache', false);
 swig.setDefaults({ cache: false });
+
 //------------------------------------
 var array = []; /// temp array to store the tweets
 app.use(bodyParser.urlencoded({extended: true}));
@@ -86,6 +87,8 @@ app.get('/movie/:movie_name', function(req, res){
                 console.log(body) // Print the json response
 
                 rating(req.params.movie_name, function(returnValue) {
+                   // var htmlObject = $(returnValue[0].tweets);
+
                     res.render('single', {title: body.Title,
                         date:body.Released
                         ,RMM_RATING:returnValue[0].rating
@@ -96,6 +99,7 @@ app.get('/movie/:movie_name', function(req, res){
                         ,runtime:body.Runtime
                         ,awards:body.Awards
                         ,plot:body.Plot
+                        ,sample_tweets:returnValue[0].tweets
                         ,src:__dirname + '/' });
                     console.log(returnValue);
                 });
@@ -134,6 +138,7 @@ app.post('/movie', function(req, res){
                         ,runtime:body.Runtime
                         ,awards:body.Awards
                         ,plot:body.Plot
+                        ,sample_tweets:returnValue[0].tweets
                         ,src:__dirname + '/' });
                     console.log(returnValue);
                 });
@@ -343,6 +348,11 @@ function rating(query,callback) {
     var pos=0;
     var neg=0;
 
+    var posTweet = 0;
+    var negTweet = 0;
+
+    var HTML="";
+
     FetechTweets("just watched "+query, function(returnValue) {
 
 
@@ -352,8 +362,19 @@ function rating(query,callback) {
                 if (tweets.indexOf(returnValue[id].text) > -1) {
 
                 } else {
-                    if(classifier.categorize(returnValue[id].text)=="positive") pos++;
-                    if(classifier.categorize(returnValue[id].text)=="negative") neg++;
+                    if(classifier.categorize(returnValue[id].text)=="positive") {
+                       if(posTweet<10){
+                           HTML +='<p style="color:#51A920">'+returnValue[id].user.name+": "+returnValue[id].text+'</p><BR>';
+                           posTweet++;
+                       }
+                        pos++
+                    };
+                    if(classifier.categorize(returnValue[id].text)=="negative"){
+                        if(negTweet<10){
+                            HTML +='<p style="color:#FF0000">'+returnValue[id].user.name+": "+returnValue[id].text+'</p><BR>';
+                            negTweet++;
+                        }
+                        neg++};
                     tweetsCount++;
                     tweets[tweetsCount] = returnValue[id].text;
                 }
@@ -378,11 +399,12 @@ function rating(query,callback) {
             var returnData = [
                 {
                     rating: (pos / (pos + neg) * 10),
-                    //  tweets: tweets,
+                      tweets: HTML,
                     tweetsCount:tweetsCount
                 }
             ];
             console.log(returnData);
+            console.log(HTML);
             callback(returnData);
         });
 
